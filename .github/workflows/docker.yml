@@ -64,5 +64,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/odd-even-maven:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/odd-even-maven:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/maven:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/maven:${{ github.sha }}
