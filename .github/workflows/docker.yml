@@ -1,35 +1,68 @@
 
-name: Docker Build
+name: Maven Tests & Docker Publish
 
+# Trigger workflow on push and pull requests
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
+
+  pull_request:
+    branches: ["main"]
 
 jobs:
-  build:
+
+  # JOB 1: Execute Maven Tests
+  maven-test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # Checkout source code
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      # Set up JDK 17
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
+          cache: maven
 
-      - name: Maven Test
+      # Run Maven tests
+      - name: Run Maven tests
         run: mvn clean test
 
-      - name: Docker Login
+  # JOB 2: Build and Publish Docker Image
+  build-and-publish-docker:
+    needs: maven-test
+    runs-on: ubuntu-latest
+
+    # Publish only on push events
+    if: github.event_name == 'push'
+
+    steps:
+      # Checkout source code
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # Login to Docker Hub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build and Push Docker Image
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/odd-even-maven:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/odd-even-maven:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/odd-even-maven:${{ github.sha }}
